@@ -13,16 +13,15 @@
 
 package de.hhu.bsinfo.evlp2boel;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
@@ -61,13 +60,13 @@ public final class EvlpToBoelConverter {
         System.out.println("Initialize converter...");
         final EvlpToBoelConverter converter = new EvlpToBoelConverter(vertices);
         System.out.println("Parse vertices...");
-        parseVertices(path + File.separator + graph + ".v", converter.edges);
+        parseVertices(Paths.get(path, graph + ".v"), converter.edges);
         System.gc();
         System.out.println("Parse edges...");
-        parseEdges(path + File.separator + graph + ".e", directed, converter.edges);
+        parseEdges(Paths.get(path, graph + ".e"), directed, converter.edges);
         System.gc();
         System.out.println("Create binary file...");
-        converter.convert(path + File.separator + graph + ".boel");
+        converter.convert(Paths.get(path, graph + ".boel"));
         System.out.println(">>>SUCCESS<<<");
     }
 
@@ -75,9 +74,9 @@ public final class EvlpToBoelConverter {
         this.edges = new HashMap<Long, List<Long>>(vertices);
     }
 
-    private final void convert(String path) {
+    private final void convert(Path path) {
         try (DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(
-                Paths.get(path),
+                path,
                 StandardOpenOption.CREATE_NEW,
                 StandardOpenOption.WRITE), 1000000))) {
             long cntVerticesTotal = edges.keySet().size();
@@ -89,8 +88,6 @@ public final class EvlpToBoelConverter {
             for (long vid : edges.keySet()) {
                 
                 int cntNeighbors = edges.get(vid).size();
-                // write long (vid)
-                // write int (cntNeighbors)
                 dos.writeLong(vid);
                 dos.writeInt(cntNeighbors);
 
@@ -119,16 +116,19 @@ public final class EvlpToBoelConverter {
         }
     }
 
-    private static void parseEdges(final String path, final boolean directed, final Map<Long, List<Long>> edges) {
-        try (final BufferedReader br = Files.newBufferedReader(
-                Paths.get(path),
-                StandardCharsets.US_ASCII)) {
+    private static void parseEdges(final Path path, final boolean directed, final Map<Long, List<Long>> edges) {
+        try (final BufferedReader br = new BufferedReader(
+                new InputStreamReader(
+                        Files.newInputStream(path, StandardOpenOption.READ),
+                        StandardCharsets.US_ASCII), 1000000)) {
             String line = null;
             final int outMod = 1000000;
             long cntEdges = 0;
+
             while ((line = br.readLine()) != null) {
-                long left = Long.parseLong(line.split("\\s")[0]);
-                long right = Long.parseLong(line.split("\\s")[1]);
+                String[] tmp = line.split("\\s");
+                long left = Long.parseLong(tmp[0], 10);
+                long right = Long.parseLong(tmp[1], 10);
 
                 edges.get(left).add(right);
 
@@ -146,10 +146,13 @@ public final class EvlpToBoelConverter {
         }
     }
 
-    private static void parseVertices(final String path, final Map<Long, List<Long>> edges) {
-        try (final BufferedReader br = Files.newBufferedReader(
-                Paths.get(path),
-                StandardCharsets.US_ASCII)) {
+    private static void parseVertices(final Path path, final Map<Long, List<Long>> edges) {
+        try (final BufferedReader br = new BufferedReader(
+                new InputStreamReader(
+                        new BufferedInputStream(
+                                Files.newInputStream(path, StandardOpenOption.READ),
+                                1000000),
+                        StandardCharsets.US_ASCII))) {
             String line = null;
             final int outMod = 1000000;
             long cntVertices = 0;

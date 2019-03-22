@@ -13,10 +13,12 @@ gradle-app.setting
 # # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
 # gradle/wrapper/gradle-wrapper.properties
 
-# eclipse
+# eclipse and idea
 .project
 .classpath
 .settings/
+.idea/
+out/
 
 #misc
 /bin
